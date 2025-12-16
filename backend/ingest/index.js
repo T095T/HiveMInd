@@ -4,61 +4,80 @@ import prisma from "../configs/prisma.js";
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "HiveMInd" });
 
-//Inngest fntion too sve user to Db
-// Inngest function to save user to Db
+/**
+ * Sync user on creation from Clerk
+ */
 const syncUserCreation = inngest.createFunction(
-  {
-    id: "sync-user-from-clerk",
-  },
+  { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
   async ({ event }) => {
     const { data } = event;
-    
-   
-    await prisma.user.create({
-      data: { 
+
+    await prisma.user.upsert({
+      where: { id: data.id },
+      update: {
+        email: data.email_addresses[0]?.email_address,
+        name:
+          `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || "User",
+        image: data.image_url ?? "",
+      },
+      create: {
         id: data.id,
-        email: data?.email_addresses[0]?.email_address,
-        name: data?.first_name + " " + data?.last_name,
-        image: data?.image_url,
+        email: data.email_addresses[0]?.email_address,
+        name:
+          `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || "User",
+        image: data.image_url ?? "",
       },
     });
   }
 );
 
-//inngest fntion to delete user
+/**
+ * Sync user deletion from Clerk
+ */
 const syncUserDeletion = inngest.createFunction(
-  {
-    id: "delete-user-from-clerk",
-  },
+  { id: "delete-user-from-clerk" },
   { event: "clerk/user.deleted" },
   async ({ event }) => {
     const { data } = event;
+
     await prisma.user.delete({
       where: { id: data.id },
     });
   }
 );
 
-//update user data
-//inngest fntion to delete user
+/**
+ * Sync user updates from Clerk
+ */
 const syncUserUpdation = inngest.createFunction(
-  {
-    id: "update-user-from-clerk",
-  },
+  { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
     const { data } = event;
-    await prisma.user.update({
+
+    await prisma.user.upsert({
       where: { id: data.id },
-      data: {
-        email: data?.email_addresses[0]?.email_address,
-        name: data?.first_name + " " + data?.last_name,
-        image: data?.image_url,
+      update: {
+        email: data.email_addresses[0]?.email_address,
+        name:
+          `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || "User",
+        image: data.image_url ?? "",
+      },
+      create: {
+        id: data.id,
+        email: data.email_addresses[0]?.email_address,
+        name:
+          `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || "User",
+        image: data.image_url ?? "",
       },
     });
   }
 );
 
-// Create an empty array where we'll export future Inngest functions
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];
+// Export all Inngest functions
+export const functions = [
+  syncUserCreation,
+  syncUserDeletion,
+  syncUserUpdation,
+];
