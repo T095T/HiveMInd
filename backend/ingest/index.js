@@ -57,5 +57,102 @@ const syncUserUpdation = inngest.createFunction(
   }
 );
 
+//clerk webhook for clerk webhook management
+const syncWorkspaceCreation = inngest.createFunction(
+  {
+    id: "sync-workspace-from-clerk",
+  },
+  {
+    event: "clerk/organization.created",
+  },
+  async ({ event }) => {
+    const { data } = event;
+    await prisma.workspace.create({
+      data: {
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        owner: data.created_by,
+        image_url: data.image_url,
+      },
+    });
+    //add creator as admin
+    await prisma.workspaceMember.create({
+      data: {
+        userId: data.created_by,
+        workspaceId: data.id,
+        role: "ADMIN",
+      },
+    });
+  }
+);
+
+//updating workspace data
+const syncWorkspaceUpdation = inngest.createFunction(
+  {
+    id: "update-workspace-from-clerk",
+  },
+  {
+    event: "clerk/organization.updated",
+  },
+  async ({ event }) => {
+    const { data } = event;
+    await prisma.workspace.update({
+      where: { id: data.id },
+      data: {
+        name: data.name,
+        slug: data.slug,
+        image_url: data.image_url,
+      },
+    });
+  }
+);
+
+//deletign workspace
+const syncWorkspaceDeletion = inngest.createFunction(
+  {
+    id: "delete-workspace-from-clerk",
+  },
+  {
+    event: "clerk/organization.deleted",
+  },
+  async ({ event }) => {
+    const { data } = event;
+    await prisma.workspace.delete({
+      where: { id: data.id },
+    });
+  }
+);
+
+//function to save workspace member data to database
+const syncWorkspaceMembarCreation = inngest.createFunction(
+  {
+    id: "sync-workspace-member-from-clerk",
+  },
+  {
+    event: "clerk/organization.member.created",
+  },
+  async ({ event }) => {
+    const { data } = event;
+    await prisma.workspaceMember.create({
+      data: {
+        userId: data.user_id,
+        workspaceId: data.organization_id,
+        role: String(data.role_name).toUpperCase(),
+      },
+    });
+  }
+);
+
+//function to
+
 // Create an empty array where we'll export future Inngest functions
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];
+export const functions = [
+  syncUserCreation,
+  syncUserDeletion,
+  syncUserUpdation,
+  syncWorkspaceCreation,
+  syncWorkspaceUpdation,
+  syncWorkspaceDeletion,
+  syncWorkspaceMembarCreation,
+];
