@@ -2,6 +2,8 @@ import express, { urlencoded } from "express";
 import dotenv from "dotenv";
 import cors from "cors"
 import { clerkMiddleware } from '@clerk/express'
+import { serve } from "inngest/express";
+import { inngest, functions } from "./ingest/index.js"
 dotenv.config();
 
 const app = express()
@@ -15,4 +17,9 @@ app.use(clerkMiddleware())
 
 //route
 app.get('/',(req,res)=> res.send("Server is Live..."));
+//inngest route
+app.use("/api/inngest", serve({ client: inngest, functions }));
+
+
+
 app.listen(port,()=>console.log(`Port running on ${port}`))
